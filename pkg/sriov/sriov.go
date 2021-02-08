@@ -6,6 +6,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/vishvananda/netlink"
 
+	"github.com/k8snetworkplumbingwg/sriov-cni/pkg/factory"
 	"github.com/k8snetworkplumbingwg/sriov-cni/pkg/logging"
 	sriovtypes "github.com/k8snetworkplumbingwg/sriov-cni/pkg/types"
 	"github.com/k8snetworkplumbingwg/sriov-cni/pkg/utils"
@@ -352,6 +353,26 @@ func (s *sriovManager) ApplyVFConfig(conf *sriovtypes.NetConf) error {
 	pfMtu := pfLink.Attrs().MTU
 	conf.MTU = &pfMtu
 
+	// 7. Set vlan trunking
+	if conf.VlanTrunk != "" {
+		vlanTrunkRange, err := utils.GetVlanTrunkRange(conf.VlanTrunk)
+		if err != nil {
+			return fmt.Errorf("GetVlanTrunkRange Error: %q", err)
+		}
+
+		vlanTrunkProviderConfig, err := factory.GetProviderConfig(conf.DeviceID)
+		if err != nil {
+			return fmt.Errorf("GetProviderConfig Error: %q", err)
+		}
+
+		vlanTrunkProviderConfig.InitConfig(&vlanTrunkRange)
+
+		if err := vlanTrunkProviderConfig.ApplyConfig(conf); err != nil {
+			return fmt.Errorf("ApplyConfig Error: %q", err)
+		}
+
+	}
+
 	return nil
 }
 
@@ -392,7 +413,7 @@ func (s *sriovManager) ResetVFConfig(conf *sriovtypes.NetConf) error {
 		conf.OrigVfState.VlanProto = sriovtypes.VlanProtoInt[sriovtypes.Proto8021q]
 	}
 
-	if conf.Vlan != nil {
+	if conf.Vlan != nil && conf.VlanTrunk == "" {
 		if err = s.nLink.LinkSetVfVlanQosProto(pfLink, conf.VFID, conf.OrigVfState.Vlan, conf.OrigVfState.VlanQoS, conf.OrigVfState.VlanProto); err != nil {
 			return fmt.Errorf("failed to set vf %d vlan configuration - id %d, qos %d and proto %d: %v", conf.VFID, conf.OrigVfState.Vlan, conf.OrigVfState.VlanQoS, conf.OrigVfState.VlanProto, err)
 		}
@@ -433,6 +454,24 @@ func (s *sriovManager) ResetVFConfig(conf *sriovtypes.NetConf) error {
 		// that don't support the netlink command (e.g. igb driver)
 		if err = s.nLink.LinkSetVfState(pfLink, conf.VFID, conf.OrigVfState.LinkState); err != nil {
 			return fmt.Errorf("failed to set link state to auto for vf %d: %v", conf.VFID, err)
+		}
+	}
+
+	// Restore VLAN Trunk
+	if conf.VlanTrunk != "" {
+		vlanTrunkRange, err := utils.GetVlanTrunkRange(conf.VlanTrunk)
+		if err != nil {
+			return fmt.Errorf("GetVlanTrunkRange Error: %q", err)
+		}
+
+		vlanTrunkProviderConfig, err := factory.GetProviderConfig(conf.DeviceID)
+		if err != nil {
+			return fmt.Errorf("GetProviderConfig Error: %q", err)
+		}
+
+		vlanTrunkProviderConfig.GetVlanData(&vlanTrunkRange)
+		if err := vlanTrunkProviderConfig.RemoveConfig(conf); err != nil {
+			return fmt.Errorf("RemoveConfig Error: %q", err)
 		}
 	}
 
