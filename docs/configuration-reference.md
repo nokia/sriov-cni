@@ -41,7 +41,8 @@ An SR-IOV CNI config with each field filled out looks like:
     "trust": "on",
     "link_state": "enable",
     "logLevel": "debug",
-    "logFile": "/tmp/sriov.log"
+    "logFile": "/tmp/sriov.log",
+    "vlan_trunk": "10,12,20-30,1100"
 }
 ```
 
