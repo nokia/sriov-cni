@@ -60,13 +60,13 @@ type VlanTrunkProviderConfig interface {
 	GetVlanData(vlanRanges *VlanTrunkRangeData)
 }
 
-//VlanTrunkRange strores trunking range
+// VlanTrunkRange strores trunking range
 type VlanTrunkRange struct {
 	Start uint
 	End   uint
 }
 
-//VlanTrunkRangeData stores an array of VlanTrunkRange
+// VlanTrunkRangeData stores an array of VlanTrunkRange
 type VlanTrunkRangeData struct {
 	VlanTrunkRanges []VlanTrunkRange
 }

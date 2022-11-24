@@ -277,7 +277,7 @@ func ValidateVlanTrunkValue(vlanTrunk string) error {
 	return nil
 }
 
-//GetVlanTrunkRange creates VlanTrunkRangeData from vlanTrunkString
+// GetVlanTrunkRange creates VlanTrunkRangeData from vlanTrunkString
 func GetVlanTrunkRange(vlanTrunkString string) (types.VlanTrunkRangeData, error) {
 	var vlanRange = []types.VlanTrunkRange{}
 	trunkingRanges := strings.Split(vlanTrunkString, ",")
@@ -309,7 +309,7 @@ func GetVlanTrunkRange(vlanTrunkString string) (types.VlanTrunkRangeData, error)
 
 }
 
-//ValidateVlanTrunkRange checks if given vlan trunking ranges are of correct form
+// ValidateVlanTrunkRange checks if given vlan trunking ranges are of correct form
 func ValidateVlanTrunkRange(vlanRanges []types.VlanTrunkRange) error {
 
 	for i, r1 := range vlanRanges {
@@ -331,7 +331,7 @@ func ValidateVlanTrunkRange(vlanRanges []types.VlanTrunkRange) error {
 	return nil
 }
 
-//GetVendorID returns ID of installed vendor
+// GetVendorID returns ID of installed vendor
 func GetVendorID(deviceID string) (string, error) {
 	path := filepath.Join(SysBusPci, deviceID, "vendor")
 
@@ -345,7 +345,7 @@ func GetVendorID(deviceID string) (string, error) {
 	return vendorCode, nil
 }
 
-//GetInfraVlanData returns vlan ranges used by cloud infra-structure
+// GetInfraVlanData returns vlan ranges used by cloud infra-structure
 func GetInfraVlanData() ([]string, []int, error) {
 	type Member struct {
 		Type string `json:"type"`

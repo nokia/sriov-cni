@@ -25,13 +25,20 @@ func LoadConf(bytes []byte) (*sriovtypes.NetConf, error) {
 
 	// DeviceID takes precedence; if we are given a VF pciaddr then work from there
 	if n.DeviceID != "" {
-		// Get rest of the VF information
-		pfName, vfID, err := getVfInfo(n.DeviceID)
-		if err != nil {
-			return nil, fmt.Errorf("LoadConf(): failed to get VF information: %q", err)
+		// First try and get the PF name, it is valid to not find the PF, in that case the VF is running within a VM
+		pf, err := utils.GetPfName(n.DeviceID)
+		if err == nil {
+			var vfID int
+
+			// Get the rest of the VF information
+			vfID, err = utils.GetVfid(n.DeviceID, pf)
+			if err != nil {
+				return nil, fmt.Errorf("LoadConf(): failed to get VF information: %q", err)
+			}
+
+			n.VFID = vfID
+			n.Master = pf
 		}
-		n.VFID = vfID
-		n.Master = pfName
 	} else {
 		return nil, fmt.Errorf("LoadConf(): VF pci addr is required")
 	}

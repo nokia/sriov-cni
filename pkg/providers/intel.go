@@ -16,26 +16,26 @@ import (
 
 var execCommand = exec.Command
 
-//IntelTrunkProviderConfig stores name of the provider
+// IntelTrunkProviderConfig stores name of the provider
 type IntelTrunkProviderConfig struct {
 	ProviderName string
 	VlanData     string
 }
 
-//NewIntelTrunkProviderConfig creates new Intel provider configuraton
+// NewIntelTrunkProviderConfig creates new Intel provider configuraton
 func NewIntelTrunkProviderConfig() sriovtypes.VlanTrunkProviderConfig {
 	return &IntelTrunkProviderConfig{
 		ProviderName: "Intel",
 	}
 }
 
-//InitConfig initializes provider configuration for given trunking ranges
+// InitConfig initializes provider configuration for given trunking ranges
 func (p *IntelTrunkProviderConfig) InitConfig(vlanRanges *sriovtypes.VlanTrunkRangeData) {
 	p.GetVlanData(vlanRanges)
 	return
 }
 
-//ApplyConfig applies provider configuration
+// ApplyConfig applies provider configuration
 func (p *IntelTrunkProviderConfig) ApplyConfig(conf *sriovtypes.NetConf) error {
 	if trunkingSupported := CheckTrunkSupport(); trunkingSupported == false {
 		return fmt.Errorf("Vlan trunking supported only by i40e version 2.7.11 and higher, please upgrade your driver")
@@ -48,7 +48,7 @@ func (p *IntelTrunkProviderConfig) ApplyConfig(conf *sriovtypes.NetConf) error {
 	return nil
 }
 
-//RemoveConfig removes configuration
+// RemoveConfig removes configuration
 func (p *IntelTrunkProviderConfig) RemoveConfig(conf *sriovtypes.NetConf) error {
 	if err := RemoveVlanFiltering(p.VlanData, conf.Master, conf.VFID); err != nil {
 		return err
@@ -57,7 +57,7 @@ func (p *IntelTrunkProviderConfig) RemoveConfig(conf *sriovtypes.NetConf) error 
 	return nil
 }
 
-//GetVlanData converts vlanRanges.VlanTrunkRanges into string
+// GetVlanData converts vlanRanges.VlanTrunkRanges into string
 func (p *IntelTrunkProviderConfig) GetVlanData(vlanRanges *sriovtypes.VlanTrunkRangeData) {
 	vlanData := ""
 	var start, end string
@@ -80,7 +80,7 @@ func (p *IntelTrunkProviderConfig) GetVlanData(vlanRanges *sriovtypes.VlanTrunkR
 	return
 }
 
-//AddVlanFiltering writes "add [trunking ranges]" to trunk file
+// AddVlanFiltering writes "add [trunking ranges]" to trunk file
 func AddVlanFiltering(vlanData, pfName string, vfid int) error {
 	addTrunk := "add " + vlanData
 	trunkFile := fmt.Sprintf(utils.TrunkFileDirectory, pfName, vfid)
@@ -116,7 +116,7 @@ func AddVlanFiltering(vlanData, pfName string, vfid int) error {
 	return nil
 }
 
-//RemoveVlanFiltering writes "rem [trunking ranges]"  to trunk file
+// RemoveVlanFiltering writes "rem [trunking ranges]"  to trunk file
 func RemoveVlanFiltering(vlanData, pfName string, vfid int) error {
 	removeTrunk := "rem " + vlanData
 	trunkFile := fmt.Sprintf(utils.TrunkFileDirectory, pfName, vfid)

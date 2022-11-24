@@ -9,26 +9,26 @@ import (
 	"strconv"
 )
 
-//MellanoxTrunkProviderConfig stores name of the provider
+// MellanoxTrunkProviderConfig stores name of the provider
 type MellanoxTrunkProviderConfig struct {
 	ProviderName string
 	VlanData     []string
 }
 
-//NewMellanoxTrunkProviderConfig creates new Mellanox provider configuraton
+// NewMellanoxTrunkProviderConfig creates new Mellanox provider configuraton
 func NewMellanoxTrunkProviderConfig() sriovtypes.VlanTrunkProviderConfig {
 	return &MellanoxTrunkProviderConfig{
 		ProviderName: "Mellanox",
 	}
 }
 
-//InitConfig initializes provider configuration for given trunking ranges
+// InitConfig initializes provider configuration for given trunking ranges
 func (p *MellanoxTrunkProviderConfig) InitConfig(vlanRanges *sriovtypes.VlanTrunkRangeData) {
 	p.GetVlanData(vlanRanges)
 	return
 }
 
-//ApplyConfig applies provider configuration
+// ApplyConfig applies provider configuration
 func (p *MellanoxTrunkProviderConfig) ApplyConfig(conf *sriovtypes.NetConf) error {
 	if trunkingSupported := CheckVgtPlusSupport(); trunkingSupported == false {
 		return fmt.Errorf("Vlan trunking is only supported by mlx5_core")
@@ -41,7 +41,7 @@ func (p *MellanoxTrunkProviderConfig) ApplyConfig(conf *sriovtypes.NetConf) erro
 	return nil
 }
 
-//RemoveConfig removes configuration
+// RemoveConfig removes configuration
 func (p *MellanoxTrunkProviderConfig) RemoveConfig(conf *sriovtypes.NetConf) error {
 	if err := DisableVgtPlus(p.VlanData, conf.Master, conf.VFID); err != nil {
 		return err
@@ -50,7 +50,7 @@ func (p *MellanoxTrunkProviderConfig) RemoveConfig(conf *sriovtypes.NetConf) err
 	return nil
 }
 
-//GetVlanData converts vlanRanges.VlanTrunkRanges into string
+// GetVlanData converts vlanRanges.VlanTrunkRanges into string
 func (p *MellanoxTrunkProviderConfig) GetVlanData(vlanRanges *sriovtypes.VlanTrunkRangeData) {
 	var vlanData []string
 	var start, end string
@@ -64,7 +64,7 @@ func (p *MellanoxTrunkProviderConfig) GetVlanData(vlanRanges *sriovtypes.VlanTru
 	return
 }
 
-//EnableVgtPlus writes "add <start_vid> <end_vid>" to trunk file
+// EnableVgtPlus writes "add <start_vid> <end_vid>" to trunk file
 func EnableVgtPlus(vlanData []string, pfName string, vfid int) error {
 	trunkFile := fmt.Sprintf(utils.TrunkFileDirectory, pfName, vfid)
 	for _, vlans := range vlanData {
@@ -93,7 +93,7 @@ func EnableVgtPlus(vlanData []string, pfName string, vfid int) error {
 	return nil
 }
 
-//DisableVgtPlus writes "rem <start_vid> <end_vid>"  to trunk file
+// DisableVgtPlus writes "rem <start_vid> <end_vid>"  to trunk file
 func DisableVgtPlus(vlanData []string, pfName string, vfid int) error {
 	trunkFile := fmt.Sprintf(utils.TrunkFileDirectory, pfName, vfid)
 	for _, vlans := range vlanData {
