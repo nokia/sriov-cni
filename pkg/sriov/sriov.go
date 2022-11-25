@@ -272,7 +272,7 @@ func (s *sriovManager) ApplyVFConfig(conf *sriovtypes.NetConf) error {
 	// It is not possible to setup VF config if there is no PF associated with the VF, so check if there is any
 	// config and reject if the master has not been set.
 	if conf.Master == "" {
-		if *conf.Vlan != 0 || conf.MAC != "" || conf.MinTxRate != nil || conf.MaxTxRate != nil || conf.SpoofChk != "" || conf.LinkState != "" {
+		if conf.MAC != "" || conf.MinTxRate != nil || conf.MaxTxRate != nil || conf.SpoofChk != "" || conf.LinkState != "" {
 			return fmt.Errorf("trying to setup VF config when PF is not availble")
 		}
 
