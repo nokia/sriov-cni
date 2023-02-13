@@ -7,7 +7,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/current"
+	current "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ipam"
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -74,6 +74,23 @@ func cmdAdd(args *skel.CmdArgs) error {
 	defer netns.Close()
 
 	sm := sriov.NewSriovManager()
+	err = sm.FillOriginalVfInfo(netConf)
+	if err != nil {
+		return fmt.Errorf("failed to get original vf information: %v", err)
+	}
+	defer func() {
+		if err != nil {
+			err := netns.Do(func(_ ns.NetNS) error {
+				_, err := netlink.LinkByName(args.IfName)
+				return err
+			})
+			if err == nil {
+				_ = sm.ReleaseVF(netConf, args.IfName, args.ContainerID, netns)
+			}
+			// Reset the VF if failure occurs before the netconf is cached
+			_ = sm.ResetVFConfig(netConf)
+		}
+	}()
 	if err := sm.ApplyVFConfig(netConf); err != nil {
 		return fmt.Errorf("SRIOV-CNI failed to configure VF %q", err)
 	}
@@ -86,17 +103,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 
 	if !netConf.DPDKMode {
 		macAddr, err = sm.SetupVF(netConf, args.IfName, args.ContainerID, netns)
-		defer func() {
-			if err != nil {
-				err := netns.Do(func(_ ns.NetNS) error {
-					_, err := netlink.LinkByName(args.IfName)
-					return err
-				})
-				if err == nil {
-					_ = sm.ReleaseVF(netConf, args.IfName, args.ContainerID, netns)
-				}
-			}
-		}()
+
 		if err != nil {
 			return fmt.Errorf("failed to set up pod interface %q from the device %q: %v", args.IfName, netConf.Master, err)
 		}
@@ -105,7 +112,8 @@ func cmdAdd(args *skel.CmdArgs) error {
 
 	// run the IPAM plugin
 	if netConf.IPAM.Type != "" {
-		r, err := ipam.ExecAdd(netConf.IPAM.Type, args.StdinData)
+		var r types.Result
+		r, err = ipam.ExecAdd(netConf.IPAM.Type, args.StdinData)
 		if err != nil {
 			return fmt.Errorf("failed to set up IPAM plugin type %q from the device %q: %v", netConf.IPAM.Type, netConf.Master, err)
 		}
@@ -117,13 +125,15 @@ func cmdAdd(args *skel.CmdArgs) error {
 		}()
 
 		// Convert the IPAM result into the current Result type
-		newResult, err := current.NewResultFromResult(r)
+		var newResult *current.Result
+		newResult, err = current.NewResultFromResult(r)
 		if err != nil {
 			return err
 		}
 
 		if len(newResult.IPs) == 0 {
-			return errors.New("IPAM plugin returned missing IP config")
+			err = errors.New("IPAM plugin returned missing IP config")
+			return err
 		}
 
 		newResult.Interfaces = result.Interfaces
@@ -135,7 +145,27 @@ func cmdAdd(args *skel.CmdArgs) error {
 
 		if !netConf.DPDKMode {
 			err = netns.Do(func(_ ns.NetNS) error {
-				return ipam.ConfigureIface(args.IfName, newResult)
+				err := ipam.ConfigureIface(args.IfName, newResult)
+				if err != nil {
+					return err
+				}
+
+				/* After IPAM configuration is done, the following needs to handle the case of an IP address being reused by a different pods.
+				 * This is achieved by sending Gratuitous ARPs and/or Unsolicited Neighbor Advertisements unconditionally.
+				 * Although we set arp_notify and ndisc_notify unconditionally on the interface (please see EnableArpAndNdiscNotify()), the kernel
+				 * only sends GARPs/Unsolicited NA when the interface goes from down to up, or when the link-layer address changes on the interfaces.
+				 * These scenarios are perfectly valid and recommended to be enabled for optimal network performance.
+				 * However for our specific case, which the kernel is unaware of, is the reuse of IP addresses across pods where each pod has a different
+				 * link-layer address for it's SRIOV interface. The ARP/Neighbor cache residing in neighbors would be invalid if an IP address is reused.
+				 * In order to update the cache, the GARP/Unsolicited NA packets should be sent for performance reasons. Otherwise, the neighbors
+				 * may be sending packets with the incorrect link-layer address. Eventually, most network stacks would send ARPs and/or Neighbor
+				 * Solicitation packets when the connection is unreachable. This would correct the invalid cache; however this may take a significant
+				 * amount of time to complete.
+				 *
+				 * The error is ignored here because enabling this feature is only a performance enhancement.
+				 */
+				_ = utils.AnnounceIPs(args.IfName, newResult.IPs)
+				return nil
 			})
 			if err != nil {
 				return err
@@ -149,7 +179,13 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return fmt.Errorf("error saving NetConf %q", err)
 	}
 
-	return types.PrintResult(result, current.ImplementedSpecVersion)
+	allocator := utils.NewPCIAllocator(config.DefaultCNIDir)
+	// Mark the pci address as in used
+	if err = allocator.SaveAllocatedPCI(netConf.DeviceID, args.Netns); err != nil {
+		return fmt.Errorf("error saving the pci allocation for vf pci address %s: %v", netConf.DeviceID, err)
+	}
+
+	return types.PrintResult(result, netConf.CNIVersion)
 }
 
 func cmdDel(args *skel.CmdArgs) error {
@@ -185,6 +221,14 @@ func cmdDel(args *skel.CmdArgs) error {
 
 	sm := sriov.NewSriovManager()
 
+	/* ResetVFConfig resets a VF administratively. We must run ResetVFConfig
+	   before ReleaseVF because some drivers will error out if we try to
+	   reset netdev VF with trust off. So, reset VF MAC address via PF first.
+	*/
+	if err := sm.ResetVFConfig(netConf); err != nil {
+		return fmt.Errorf("cmdDel() error reseting VF: %q", err)
+	}
+
 	if !netConf.DPDKMode {
 		netns, err := ns.GetNS(args.Netns)
 		if err != nil {
@@ -207,8 +251,10 @@ func cmdDel(args *skel.CmdArgs) error {
 		}
 	}
 
-	if err := sm.ResetVFConfig(netConf); err != nil {
-		return fmt.Errorf("cmdDel() error reseting VF: %q", err)
+	// Mark the pci address as released
+	allocator := utils.NewPCIAllocator(config.DefaultCNIDir)
+	if err = allocator.DeleteAllocatedPCI(netConf.DeviceID); err != nil {
+		return fmt.Errorf("error cleaning the pci allocation for vf pci address %s: %v", netConf.DeviceID, err)
 	}
 
 	return nil
