@@ -3,6 +3,7 @@ package sriov
 import (
 	"fmt"
 	"net"
+	"plugin"
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -297,6 +298,23 @@ func (s *sriovManager) ApplyVFConfig(conf *sriovtypes.NetConf) error {
 		}
 	}
 
+	// 7. Set vlan trunking
+	if conf.VlanTrunk != "" {
+		trunkPlugin, err := plugin.Open("/opt/cni/bin/sriov-trunk.so")
+		if err != nil {
+			return fmt.Errorf("failed to load sriov-trunk plugin sriov-trunk.so: %v", err)
+		}
+
+		applyConfig, err := trunkPlugin.Lookup("ApplyConfig")
+		if err != nil {
+			return fmt.Errorf("failed to load sriov-trunk plugin symbol ApplyConfig: %v", err)
+		}
+
+		if err = applyConfig.(func(*sriovtypes.NetConf) error)(conf); err != nil {
+			return fmt.Errorf("failed to invoke sriov-trunk plugin function ApplyConfig(): %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -323,7 +341,7 @@ func (s *sriovManager) ResetVFConfig(conf *sriovtypes.NetConf) error {
 	}
 
 	// Restore VLAN
-	if conf.Vlan != nil {
+	if conf.Vlan != nil && conf.VlanTrunk == "" {
 		if conf.VlanQoS != nil {
 			if err = s.nLink.LinkSetVfVlanQos(pfLink, conf.VFID, conf.OrigVfState.Vlan, conf.OrigVfState.VlanQoS); err != nil {
 				return fmt.Errorf("failed to restore vf %d vlan: %v", conf.VFID, err)
@@ -386,6 +404,23 @@ func (s *sriovManager) ResetVFConfig(conf *sriovtypes.NetConf) error {
 		// that don't support the netlink command (e.g. igb driver)
 		if err = s.nLink.LinkSetVfState(pfLink, conf.VFID, conf.OrigVfState.LinkState); err != nil {
 			return fmt.Errorf("failed to set link state to auto for vf %d: %v", conf.VFID, err)
+		}
+	}
+
+	// Restore VLAN Trunk
+	if conf.VlanTrunk != "" {
+		trunkPlugin, err := plugin.Open("/opt/cni/bin/sriov-trunk.so")
+		if err != nil {
+			return fmt.Errorf("failed to load sriov-trunk plugin sriov-trunk.so: %v", err)
+		}
+
+		removeConfig, err := trunkPlugin.Lookup("RemoveConfig")
+		if err != nil {
+			return fmt.Errorf("failed to load sriov-trunk plugin symbol RemoveConfig: %v", err)
+		}
+
+		if err = removeConfig.(func(*sriovtypes.NetConf) error)(conf); err != nil {
+			return fmt.Errorf("failed to invoke sriov-trunk plugin function RemoveConfig(): %v", err)
 		}
 	}
 

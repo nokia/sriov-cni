@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -280,6 +281,15 @@ func ReadScratchNetConf(cRefPath string) ([]byte, error) {
 func CleanCachedNetConf(cRefPath string) error {
 	if err := os.Remove(cRefPath); err != nil {
 		return fmt.Errorf("error removing NetConf file %s: %v", cRefPath, err)
+	}
+	return nil
+}
+
+// ValidateVlanTrunkValue validates vlan trunking input
+func ValidateVlanTrunkValue(vlanTrunk string) error {
+	validTrunkValue := regexp.MustCompile("^[0-9]+([,\\-][0-9]+)*$")
+	if !validTrunkValue.MatchString(vlanTrunk) {
+		return fmt.Errorf("Invalid vlan_trunk value")
 	}
 	return nil
 }
