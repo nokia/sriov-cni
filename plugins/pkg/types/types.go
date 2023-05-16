@@ -1,0 +1,60 @@
+package types
+
+import (
+	"github.com/containernetworking/cni/pkg/types"
+)
+
+// VfState represents the state of the VF
+type VfState struct {
+	HostIFName   string
+	SpoofChk     bool
+	AdminMAC     string
+	EffectiveMAC string
+	Vlan         int
+	VlanQoS      int
+	MinTxRate    int
+	MaxTxRate    int
+	LinkState    uint32
+}
+
+// NetConf extends types.NetConf for sriov-cni
+type NetConf struct {
+	types.NetConf
+	OrigVfState   VfState // Stores the original VF state as it was prior to any operations done during cmdAdd flow
+	DPDKMode      bool
+	Master        string
+	MAC           string
+	Vlan          *int   `json:"vlan"`
+	VlanQoS       *int   `json:"vlanQoS"`
+	DeviceID      string `json:"deviceID"` // PCI address of a VF in valid sysfs format
+	VFID          int
+	ContIFNames   string // VF names after in the container; used during deletion
+	MinTxRate     *int   `json:"min_tx_rate"`          // Mbps, 0 = disable rate limiting
+	MaxTxRate     *int   `json:"max_tx_rate"`          // Mbps, 0 = disable rate limiting
+	SpoofChk      string `json:"spoofchk,omitempty"`   // on|off
+	Trust         string `json:"trust,omitempty"`      // on|off
+	LinkState     string `json:"link_state,omitempty"` // auto|enable|disable
+	VlanTrunk     string `json:"vlan_trunk,omitempty"` // vlan trunking
+	RuntimeConfig struct {
+		Mac string `json:"mac,omitempty"`
+	} `json:"runtimeConfig,omitempty"`
+}
+
+// VlanTrunkProviderConfig provdes methods for provider configuration
+type VlanTrunkProviderConfig interface {
+	InitConfig(vlanRanges *VlanTrunkRangeData)
+	ApplyConfig(conf *NetConf) error
+	RemoveConfig(conf *NetConf) error
+	GetVlanData(vlanRanges *VlanTrunkRangeData)
+}
+
+// VlanTrunkRange strores trunking range
+type VlanTrunkRange struct {
+	Start uint
+	End   uint
+}
+
+// VlanTrunkRangeData stores an array of VlanTrunkRange
+type VlanTrunkRangeData struct {
+	VlanTrunkRanges []VlanTrunkRange
+}
