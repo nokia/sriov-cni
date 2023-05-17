@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	sriovtypes "github.com/k8snetworkplumbingwg/sriov-cni/pkg/types"
 	"github.com/nokia/sriov-cni/plugins/pkg/types"
-	sriovtypes "github.com/nokia/sriov-cni/plugins/pkg/types"
 )
 
 func FakeNoTrunkSupport(command string, args ...string) *exec.Cmd {

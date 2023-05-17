@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
+	sriovtypes "github.com/k8snetworkplumbingwg/sriov-cni/pkg/types"
 	"github.com/nokia/sriov-cni/plugins/pkg/factory"
-	sriovtypes "github.com/nokia/sriov-cni/plugins/pkg/types"
 	"github.com/nokia/sriov-cni/plugins/pkg/utils"
 )
 

@@ -6,7 +6,8 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	sriovtypes "github.com/nokia/sriov-cni/plugins/pkg/types"
+	sriovtypes "github.com/k8snetworkplumbingwg/sriov-cni/pkg/types"
+	"github.com/nokia/sriov-cni/plugins/pkg/types"
 	"github.com/nokia/sriov-cni/plugins/pkg/utils"
 )
 
@@ -17,14 +18,14 @@ type MellanoxTrunkProviderConfig struct {
 }
 
 // NewMellanoxTrunkProviderConfig creates new Mellanox provider configuraton
-func NewMellanoxTrunkProviderConfig() sriovtypes.VlanTrunkProviderConfig {
+func NewMellanoxTrunkProviderConfig() types.VlanTrunkProviderConfig {
 	return &MellanoxTrunkProviderConfig{
 		ProviderName: "Mellanox",
 	}
 }
 
 // InitConfig initializes provider configuration for given trunking ranges
-func (p *MellanoxTrunkProviderConfig) InitConfig(vlanRanges *sriovtypes.VlanTrunkRangeData) {
+func (p *MellanoxTrunkProviderConfig) InitConfig(vlanRanges *types.VlanTrunkRangeData) {
 	p.GetVlanData(vlanRanges)
 	return
 }
@@ -52,7 +53,7 @@ func (p *MellanoxTrunkProviderConfig) RemoveConfig(conf *sriovtypes.NetConf) err
 }
 
 // GetVlanData converts vlanRanges.VlanTrunkRanges into string
-func (p *MellanoxTrunkProviderConfig) GetVlanData(vlanRanges *sriovtypes.VlanTrunkRangeData) {
+func (p *MellanoxTrunkProviderConfig) GetVlanData(vlanRanges *types.VlanTrunkRangeData) {
 	var vlanData []string
 	var start, end string
 

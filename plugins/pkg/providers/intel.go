@@ -10,7 +10,8 @@ import (
 
 	"github.com/Masterminds/semver"
 
-	sriovtypes "github.com/nokia/sriov-cni/plugins/pkg/types"
+	sriovtypes "github.com/k8snetworkplumbingwg/sriov-cni/pkg/types"
+	"github.com/nokia/sriov-cni/plugins/pkg/types"
 	"github.com/nokia/sriov-cni/plugins/pkg/utils"
 )
 
@@ -23,14 +24,14 @@ type IntelTrunkProviderConfig struct {
 }
 
 // NewIntelTrunkProviderConfig creates new Intel provider configuraton
-func NewIntelTrunkProviderConfig() sriovtypes.VlanTrunkProviderConfig {
+func NewIntelTrunkProviderConfig() types.VlanTrunkProviderConfig {
 	return &IntelTrunkProviderConfig{
 		ProviderName: "Intel",
 	}
 }
 
 // InitConfig initializes provider configuration for given trunking ranges
-func (p *IntelTrunkProviderConfig) InitConfig(vlanRanges *sriovtypes.VlanTrunkRangeData) {
+func (p *IntelTrunkProviderConfig) InitConfig(vlanRanges *types.VlanTrunkRangeData) {
 	p.GetVlanData(vlanRanges)
 	return
 }
@@ -58,7 +59,7 @@ func (p *IntelTrunkProviderConfig) RemoveConfig(conf *sriovtypes.NetConf) error 
 }
 
 // GetVlanData converts vlanRanges.VlanTrunkRanges into string
-func (p *IntelTrunkProviderConfig) GetVlanData(vlanRanges *sriovtypes.VlanTrunkRangeData) {
+func (p *IntelTrunkProviderConfig) GetVlanData(vlanRanges *types.VlanTrunkRangeData) {
 	vlanData := ""
 	var start, end string
 
