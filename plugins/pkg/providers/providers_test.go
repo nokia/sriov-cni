@@ -31,10 +31,10 @@ var _ = Describe("Providers", func() {
 		It("Assuming valid config", func() {
 			execCommand = FakeTrunkSupport
 			p := NewIntelTrunkProviderConfig()
-			vlanRanges := &sriovtypes.VlanTrunkRangeData{
-				VlanTrunkRanges: []sriovtypes.VlanTrunkRange{{Start: 1, End: 3}, {Start: 5, End: 10}, {Start: 13, End: 13}},
+			vlanRanges := &types.VlanTrunkRangeData{
+				VlanTrunkRanges: []types.VlanTrunkRange{{Start: 1, End: 3}, {Start: 5, End: 10}, {Start: 13, End: 13}},
 			}
-			netConf := &types.NetConf{
+			netConf := &sriovtypes.NetConf{
 				Master: "enp175s6",
 				VFID:   0,
 			}
@@ -49,8 +49,8 @@ var _ = Describe("Providers", func() {
 	})
 	Context("Checking GetVlanData function", func() {
 		It("Assuming correct VlanTrunkRangeData", func() {
-			vlanRanges := &sriovtypes.VlanTrunkRangeData{
-				VlanTrunkRanges: []sriovtypes.VlanTrunkRange{{Start: 1, End: 3}, {Start: 5, End: 10}, {Start: 13, End: 13}},
+			vlanRanges := &types.VlanTrunkRangeData{
+				VlanTrunkRanges: []types.VlanTrunkRange{{Start: 1, End: 3}, {Start: 5, End: 10}, {Start: 13, End: 13}},
 			}
 			p := &IntelTrunkProviderConfig{
 				ProviderName: "Intel",

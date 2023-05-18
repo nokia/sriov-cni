@@ -40,8 +40,8 @@ func RemoveConfig(conf *sriovtypes.NetConf) error {
 
 	vlanTrunkProviderConfig.InitConfig(&vlanTrunkRange)
 
-	if err := vlanTrunkProviderConfig.ApplyConfig(conf); err != nil {
-		return fmt.Errorf("ApplyConfig Error: %q", err)
+	if err := vlanTrunkProviderConfig.RemoveConfig(conf); err != nil {
+		return fmt.Errorf("RemoveConfig Error: %q", err)
 	}
 	return nil
 }
