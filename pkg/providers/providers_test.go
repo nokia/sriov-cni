@@ -33,10 +33,9 @@ var _ = Describe("Providers", func() {
 			vlanRanges := &sriovtypes.VlanTrunkRangeData{
 				VlanTrunkRanges: []sriovtypes.VlanTrunkRange{{Start: 1, End: 3}, {Start: 5, End: 10}, {Start: 13, End: 13}},
 			}
-			netConf := &sriovtypes.NetConf{
-				Master: "enp175s6",
-				VFID:   0,
-			}
+			netConf := &sriovtypes.NetConf{}
+			netConf.Master = "enp175s6"
+			netConf.VFID = 0
 			p.InitConfig(vlanRanges)
 
 			err := p.ApplyConfig(netConf)
